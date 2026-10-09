@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Number Practice</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    h1 { font-size: 1.75rem; margin-bottom: 1.5rem; font-weight: 600; }
+    .card {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .lang-select { display: flex; flex-direction: column; gap: 0.75rem; }
+    .lang-btn {
+      background: #334155;
+      border: none;
+      color: #f1f5f9;
+      padding: 0.9rem 1.2rem;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .lang-btn:hover { background: #475569; }
+    .hidden { display: none !important; }
+    .number-display {
+      font-size: 4.5rem;
+      font-weight: 700;
+      margin: 1.2rem 0;
+      min-height: 5.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+    .number-display.clickable { cursor: pointer; }
+    .number-display.clickable:hover { color: #38bdf8; }
+    .answer {
+      font-size: 1.6rem;
+      color: #94a3b8;
+      min-height: 2.4rem;
+      margin-bottom: 1.5rem;
+      word-break: break-word;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      justify-content: center;
+    }
+    button.action {
+      background: #0ea5e9;
+      border: none;
+      color: white;
+      padding: 0.75rem 1.4rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button.action:hover { background: #0284c7; }
+    button.action.secondary {
+      background: #475569;
+    }
+    button.action.secondary:hover { background: #64748b; }
+    button.action:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .mode-label {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 0.8rem;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <!-- Language selection -->
+  <div id="langScreen" class="card">
+    <h1>🔢Number Practice</h1>
+    <p style="margin-bottom:1.2rem;color:#94a3b8;">Choose a language</p>
+    <div class="lang-select">
+      <button class="lang-btn" data-lang="en">English</button>
+      <button class="lang-btn" data-lang="de">Deutsch</button>
+      <button class="lang-btn" data-lang="sv">Svenska</button>
+      <button class="lang-btn" data-lang="es">Español</button>
+      <button class="lang-btn" data-lang="fr">Français</button>
+    </div>
+  </div>
+
+  <!-- Practice screen -->
+  <div id="practiceScreen" class="card hidden">
+    <div class="top-bar">
+      <span id="langLabel">English</span>
+      <span id="modeLabel">Mode 1 · Click</span>
+    </div>
+    <div class="mode-label" id="instruction">Click the number to reveal the spelling</div>
+
+    <div id="numberDisplay" class="number-display clickable">—</div>
+    <div id="answerArea" class="answer"></div>
+
+    <div class="btn-row">
+      <button id="revealBtn" class="action">Show Answer</button>
+      <button id="nextBtn" class="action">Next</button>
+      <button id="switchModeBtn" class="action secondary">Switch Mode</button>
+      <button id="changeLangBtn" class="action secondary">Change Language</button>
+    </div>
+  </div>
+
+<script>
+  // ---------- Number pool ----------
+  const specials = [100,110,125,150,200,300,400,500,600,700,800,900,1000];
+  const pool = [];
+  for (let i = 1; i <= 100; i++) pool.push(i);
+  specials.forEach(n => { if (!pool.includes(n)) pool.push(n); });
+
+  // ---------- Number → word converters ----------
+  const onesEn = ['','one','two','three','four','five','six','seven','eight','nine',
+                  'ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen',
+                  'seventeen','eighteen','nineteen'];
+  const tensEn = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+
+  function toEnglish(n) {
+    if (n === 0) return 'zero';
+    if (n < 20) return onesEn[n];
+    if (n < 100) {
+      const t = Math.floor(n / 10), o = n % 10;
+      return tensEn[t] + (o ? '-' + onesEn[o] : '');
+    }
+    if (n === 100) return 'one hundred';
+    if (n === 1000) return 'one thousand';
+    if (n < 1000) {
+      const h = Math.floor(n / 100), r = n % 100;
+      return onesEn[h] + ' hundred' + (r ? ' ' + toEnglish(r) : '');
+    }
+    return String(n);
+  }
+
+  // German
+  const onesDe = ['','eins','zwei','drei','vier','fünf','sechs','sieben','acht','neun',
+                  'zehn','elf','zwölf','dreizehn','vierzehn','fünfzehn','sechzehn',
+                  'siebzehn','achtzehn','neunzehn'];
+  const tensDe = ['','','zwanzig','dreißig','vierzig','fünfzig','sechzig','siebzig','achtzig','neunzig'];
+
+  function toGerman(n) {
+    if (n === 0) return 'null';
+    if (n === 1) return 'eins';
+    if (n < 20) return onesDe[n];
+    if (n < 100) {
+      const t = Math.floor(n / 10), o = n % 10;
+      if (o === 0) return tensDe[t];
+      // German: units + "und" + tens (eins becomes ein for 21+)
+      const unit = (o === 1) ? 'ein' : onesDe[o];
+      return unit + 'und' + tensDe[t];
+    }
+    if (n === 100) return 'einhundert';
+    if (n === 1000) return 'eintausend';
+    if (n < 1000) {
+      const h = Math.floor(n / 100), r = n % 100;
+      const hund = (h === 1) ? 'einhundert' : onesDe[h] + 'hundert';
+      return hund + (r ? toGerman(r) : '');
+    }
+    return String(n);
+  }
+
+  // Swedish
+  const onesSv = ['','ett','två','tre','fyra','fem','sex','sju','åtta','nio',
+                  'tio','elva','tolv','tretton','fjorton','femton','sexton',
+                  'sjutton','arton','nitton'];
+  const tensSv = ['','','tjugo','trettio','fyrtio','femtio','sextio','sjuttio','åttio','nittio'];
+
+  function toSwedish(n) {
+    if (n === 0) return 'noll';
+    if (n < 20) return onesSv[n];
+    if (n < 100) {
+      const t = Math.floor(n / 10), o = n % 10;
+      return tensSv[t] + (o ? onesSv[o] : '');
+    }
+    if (n === 100) return 'etthundra';
+    if (n === 1000) return 'ettusen';
+    if (n < 1000) {
+      const h = Math.floor(n / 100), r = n % 100;
+      const hund = (h === 1) ? 'etthundra' : onesSv[h] + 'hundra';
+      return hund + (r ? toSwedish(r) : '');
+    }
+    return String(n);
+  }
+
+  // Spanish
+  const onesEs = ['','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve',
+                  'diez','once','doce','trece','catorce','quince','dieciséis',
+                  'diecisiete','dieciocho','diecinueve','veinte'];
+  const tensEs = ['','','veinte','treinta','cuarenta','cincuenta','sesenta','setenta','ochenta','noventa'];
+  const hundredsEs = ['','ciento','doscientos','trescientos','cuatrocientos','quinientos',
+                      'seiscientos','setecientos','ochocientos','novecientos'];
+
+  function toSpanish(n) {
+    if (n === 0) return 'cero';
+    if (n === 100) return 'cien';
+    if (n === 1000) return 'mil';
+    if (n <= 20) return onesEs[n];
+    if (n < 30) return 'veinti' + onesEs[n - 20]; // veintiuno etc.
+    if (n < 100) {
+      const t = Math.floor(n / 10), o = n % 10;
+      return tensEs[t] + (o ? ' y ' + onesEs[o] : '');
+    }
+    if (n < 1000) {
+      const h = Math.floor(n / 100), r = n % 100;
+      return hundredsEs[h] + (r ? ' ' + toSpanish(r) : '');
+    }
+    return String(n);
+  }
+
+  // French
+  const onesFr = ['','un','deux','trois','quatre','cinq','six','sept','huit','neuf',
+                  'dix','onze','douze','treize','quatorze','quinze','seize',
+                  'dix-sept','dix-huit','dix-neuf'];
+  const tensFr = ['','','vingt','trente','quarante','cinquante','soixante','soixante',
+                  'quatre-vingt','quatre-vingt'];
+
+  function toFrench(n) {
+    if (n === 0) return 'zéro';
+    if (n < 20) return onesFr[n];
+    if (n < 70) {
+      const t = Math.floor(n / 10), o = n % 10;
+      if (o === 0) return tensFr[t];
+      if (o === 1 && t !== 8) return tensFr[t] + ' et un';
+      return tensFr[t] + '-' + onesFr[o];
+    }
+    if (n < 80) { // 70-79 = soixante + 10-19
+      return 'soixante-' + toFrench(n - 60);
+    }
+    if (n < 100) { // 80-99
+      if (n === 80) return 'quatre-vingts';
+      return 'quatre-vingt-' + toFrench(n - 80);
+    }
+    if (n === 100) return 'cent';
+    if (n === 1000) return 'mille';
+    if (n < 1000) {
+      const h = Math.floor(n / 100), r = n % 100;
+      let hund = (h === 1) ? 'cent' : onesFr[h] + ' cent';
+      if (h > 1 && r === 0) hund += 's';
+      return hund + (r ? ' ' + toFrench(r) : '');
+    }
+    return String(n);
+  }
+
+  const converters = {
+    en: toEnglish,
+    de: toGerman,
+    sv: toSwedish,
+    es: toSpanish,
+    fr: toFrench
+  };
+
+  const langNames = {
+    en: 'English', de: 'Deutsch', sv: 'Svenska', es: 'Español', fr: 'Français'
+  };
+
+  const speechLangs = {
+    en: 'en-US', de: 'de-DE', sv: 'sv-SE', es: 'es-ES', fr: 'fr-FR'
+  };
+
+  // ---------- State ----------
+  let currentLang = 'en';
+  let mode = 1; // 1 = click, 2 = audio
+  let currentNumber = null;
+  let answerShown = false;
+  let voices = [];
+
+  // ---------- Helpers ----------
+  function pickRandomNumber() {
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function getSpelling(n) {
+    return converters[currentLang](n);
+  }
+
+  function loadVoices() {
+    voices = speechSynthesis.getVoices();
+  }
+  if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = loadVoices;
+  }
+  loadVoices();
+
+  function speak(text) {
+    speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = speechLangs[currentLang];
+    // Prefer a matching voice
+    const preferred = voices.find(v => v.lang.startsWith(currentLang) || v.lang.startsWith(speechLangs[currentLang].slice(0,2)));
+    if (preferred) utt.voice = preferred;
+    utt.rate = 0.9;
+    speechSynthesis.speak(utt);
+  }
+
+  // ---------- UI updates ----------
+  function showNumber() {
+    currentNumber = pickRandomNumber();
+    answerShown = false;
+    const display = document.getElementById('numberDisplay');
+    const answer = document.getElementById('answerArea');
+    const revealBtn = document.getElementById('revealBtn');
+    const instruction = document.getElementById('instruction');
+
+    answer.textContent = '';
+    revealBtn.disabled = false;
+
+    if (mode === 1) {
+      display.textContent = currentNumber;
+      display.classList.add('clickable');
+      instruction.textContent = 'Click the number (or Show Answer) to reveal the spelling';
+      revealBtn.textContent = 'Show Answer';
+    } else {
+      display.textContent = '?';
+      display.classList.remove('clickable');
+      instruction.textContent = 'Listen to the audio, then show the answer';
+      revealBtn.textContent = 'Show Answer';
+      // Auto-play the number as speech
+      speak(String(currentNumber));
+    }
+  }
+
+  function revealAnswer() {
+    if (answerShown) return;
+    answerShown = true;
+    const spelling = getSpelling(currentNumber);
+    document.getElementById('answerArea').textContent = `${currentNumber} · ${spelling}`;
+    document.getElementById('revealBtn').disabled = true;
+    // Also speak the spelling if desired (optional – currently only the digit is spoken in mode 2)
+  }
+
+  function nextNumber() {
+    showNumber();
+  }
+
+  function switchMode() {
+    mode = mode === 1 ? 2 : 1;
+    document.getElementById('modeLabel').textContent = mode === 1 ? 'Mode 1 · Click' : 'Mode 2 · Audio';
+    showNumber();
+  }
+
+  // ---------- Event listeners ----------
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentLang = btn.dataset.lang;
+      document.getElementById('langLabel').textContent = langNames[currentLang];
+      document.getElementById('langScreen').classList.add('hidden');
+      document.getElementById('practiceScreen').classList.remove('hidden');
+      mode = 1;
+      document.getElementById('modeLabel').textContent = 'Mode 1 · Click';
+      showNumber();
+    });
+  });
+
+  document.getElementById('numberDisplay').addEventListener('click', () => {
+    if (mode === 1 && !answerShown) revealAnswer();
+  });
+
+  document.getElementById('revealBtn').addEventListener('click', revealAnswer);
+  document.getElementById('nextBtn').addEventListener('click', nextNumber);
+  document.getElementById('switchModeBtn').addEventListener('click', switchMode);
+
+  document.getElementById('changeLangBtn').addEventListener('click', () => {
+    speechSynthesis.cancel();
+    document.getElementById('practiceScreen').classList.add('hidden');
+    document.getElementById('langScreen').classList.remove('hidden');
+  });
+</script>
+</body>
+</html>
