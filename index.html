@@ -221,7 +221,7 @@
     return String(n);
   }
 
-  // Spanish
+  // Spanish – fixed 20-29 with correct accents
   const onesEs = ['','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve',
                   'diez','once','doce','trece','catorce','quince','dieciséis',
                   'diecisiete','dieciocho','diecinueve','veinte'];
@@ -229,12 +229,24 @@
   const hundredsEs = ['','ciento','doscientos','trescientos','cuatrocientos','quinientos',
                       'seiscientos','setecientos','ochocientos','novecientos'];
 
+  const veintiEs = {
+    21: 'veintiuno',
+    22: 'veintidós',
+    23: 'veintitrés',
+    24: 'veinticuatro',
+    25: 'veinticinco',
+    26: 'veintiséis',
+    27: 'veintisiete',
+    28: 'veintiocho',
+    29: 'veintinueve'
+  };
+
   function toSpanish(n) {
     if (n === 0) return 'cero';
     if (n === 100) return 'cien';
     if (n === 1000) return 'mil';
     if (n <= 20) return onesEs[n];
-    if (n < 30) return 'veinti' + onesEs[n - 20];
+    if (n < 30) return veintiEs[n];
     if (n < 100) {
       const t = Math.floor(n / 10), o = n % 10;
       return tensEs[t] + (o ? ' y ' + onesEs[o] : '');
@@ -246,7 +258,7 @@
     return String(n);
   }
 
-  // French
+  // French – fixed 71 as "soixante et onze"
   const onesFr = ['','un','deux','trois','quatre','cinq','six','sept','huit','neuf',
                   'dix','onze','douze','treize','quatorze','quinze','seize',
                   'dix-sept','dix-huit','dix-neuf'];
@@ -262,7 +274,11 @@
       if (o === 1 && t !== 8) return tensFr[t] + ' et un';
       return tensFr[t] + '-' + onesFr[o];
     }
-    if (n < 80) return 'soixante-' + toFrench(n - 60);
+    if (n < 80) {
+      // 70-79
+      if (n === 71) return 'soixante et onze';
+      return 'soixante-' + toFrench(n - 60);
+    }
     if (n < 100) {
       if (n === 80) return 'quatre-vingts';
       return 'quatre-vingt-' + toFrench(n - 80);
@@ -321,9 +337,12 @@
     speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
     utt.lang = speechLangs[currentLang];
+    // Prefer a voice that matches the language as closely as possible
     const preferred = voices.find(v =>
-      v.lang.startsWith(currentLang) ||
-      v.lang.startsWith(speechLangs[currentLang].slice(0, 2))
+      v.lang.toLowerCase().startsWith(speechLangs[currentLang].toLowerCase()) ||
+      v.lang.toLowerCase().startsWith(currentLang)
+    ) || voices.find(v =>
+      v.lang.toLowerCase().startsWith(currentLang)
     );
     if (preferred) utt.voice = preferred;
     utt.rate = 0.9;
