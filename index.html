@@ -87,6 +87,12 @@
       background: #475569;
     }
     button.action.secondary:hover { background: #64748b; }
+    button.action.toggle-off {
+      background: #475569;
+    }
+    button.action.toggle-off:hover {
+      background: #64748b;
+    }
     .instruction {
       font-size: 0.95rem;
       color: #94a3b8;
@@ -103,7 +109,6 @@
   </style>
 </head>
 <body>
-  <!-- Language selection -->
   <div id="langScreen" class="card">
     <h1>Number Practice</h1>
     <p style="margin-bottom:1.2rem;color:#94a3b8;">Choose a language</p>
@@ -126,7 +131,6 @@
     </div>
   </div>
 
-  <!-- Practice screen -->
   <div id="practiceScreen" class="card hidden">
     <div class="top-bar">
       <span id="langLabel">English</span>
@@ -140,17 +144,16 @@
     <div class="btn-row">
       <button id="mainBtn" class="action">Show Answer</button>
       <button id="changeLangBtn" class="action secondary">Change Language</button>
+      <button id="autoSpeakBtn" class="action">Auto Speak: ON</button>
     </div>
   </div>
 
 <script>
-  // ---------- Number pool ----------
   const specials = [100,110,125,150,200,300,400,500,600,700,800,900,1000];
   const pool = [];
   for (let i = 1; i <= 100; i++) pool.push(i);
   specials.forEach(n => { if (!pool.includes(n)) pool.push(n); });
 
-  // ---------- Number → word converters ----------
   const onesEn = ['','one','two','three','four','five','six','seven','eight','nine',
                   'ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen',
                   'seventeen','eighteen','nineteen'];
@@ -172,7 +175,6 @@
     return String(n);
   }
 
-  // German
   const onesDe = ['','eins','zwei','drei','vier','fünf','sechs','sieben','acht','neun',
                   'zehn','elf','zwölf','dreizehn','vierzehn','fünfzehn','sechzehn',
                   'siebzehn','achtzehn','neunzehn'];
@@ -198,7 +200,6 @@
     return String(n);
   }
 
-  // Swedish
   const onesSv = ['','ett','två','tre','fyra','fem','sex','sju','åtta','nio',
                   'tio','elva','tolv','tretton','fjorton','femton','sexton',
                   'sjutton','arton','nitton'];
@@ -221,7 +222,6 @@
     return String(n);
   }
 
-  // Spanish – fixed 20-29 with correct accents
   const onesEs = ['','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve',
                   'diez','once','doce','trece','catorce','quince','dieciséis',
                   'diecisiete','dieciocho','diecinueve','veinte'];
@@ -258,7 +258,6 @@
     return String(n);
   }
 
-  // French – fixed 71 as "soixante et onze"
   const onesFr = ['','un','deux','trois','quatre','cinq','six','sept','huit','neuf',
                   'dix','onze','douze','treize','quatorze','quinze','seize',
                   'dix-sept','dix-huit','dix-neuf'];
@@ -275,7 +274,6 @@
       return tensFr[t] + '-' + onesFr[o];
     }
     if (n < 80) {
-      // 70-79
       if (n === 71) return 'soixante et onze';
       return 'soixante-' + toFrench(n - 60);
     }
@@ -310,13 +308,12 @@
     en: 'en-US', de: 'de-DE', sv: 'sv-SE', es: 'es-ES', fr: 'fr-FR'
   };
 
-  // ---------- State ----------
   let currentLang = 'en';
   let currentNumber = null;
   let answerShown = false;
   let voices = [];
+  let autoSpeak = true;
 
-  // ---------- Helpers ----------
   function pickRandomNumber() {
     return pool[Math.floor(Math.random() * pool.length)];
   }
@@ -337,7 +334,6 @@
     speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
     utt.lang = speechLangs[currentLang];
-    // Prefer a voice that matches the language as closely as possible
     const preferred = voices.find(v =>
       v.lang.toLowerCase().startsWith(speechLangs[currentLang].toLowerCase()) ||
       v.lang.toLowerCase().startsWith(currentLang)
@@ -349,7 +345,6 @@
     speechSynthesis.speak(utt);
   }
 
-  // ---------- Core logic ----------
   function showNewNumber() {
     currentNumber = pickRandomNumber();
     answerShown = false;
@@ -361,24 +356,22 @@
     mainBtn.textContent = 'Show Answer';
     mainBtn.classList.remove('secondary');
 
-    // Auto-play the number
-    speak(String(currentNumber));
+    if (autoSpeak) {
+      speak(String(currentNumber));
+    }
   }
 
   function onMainButton() {
     if (!answerShown) {
-      // Show the spelling
       answerShown = true;
       const spelling = getSpelling(currentNumber);
       document.getElementById('answerArea').textContent = spelling;
       document.getElementById('mainBtn').textContent = 'Next';
     } else {
-      // Go to next number
       showNewNumber();
     }
   }
 
-  // ---------- Event listeners ----------
   document.querySelectorAll('.lang-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       currentLang = btn.dataset.lang;
@@ -389,7 +382,6 @@
     });
   });
 
-  // Tap the number → replay audio
   document.getElementById('numberDisplay').addEventListener('click', () => {
     if (currentNumber !== null) {
       speak(String(currentNumber));
@@ -402,6 +394,16 @@
     speechSynthesis.cancel();
     document.getElementById('practiceScreen').classList.add('hidden');
     document.getElementById('langScreen').classList.remove('hidden');
+  });
+
+  document.getElementById('autoSpeakBtn').addEventListener('click', () => {
+    autoSpeak = !autoSpeak;
+    const btn = document.getElementById('autoSpeakBtn');
+    btn.textContent = autoSpeak ? 'Auto Speak: ON' : 'Auto Speak: OFF';
+    btn.classList.toggle('toggle-off', !autoSpeak);
+    if (!autoSpeak) {
+      speechSynthesis.cancel();
+    }
   });
 </script>
 </body>
