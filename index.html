@@ -355,10 +355,6 @@
     const mainBtn = document.getElementById('mainBtn');
     mainBtn.textContent = 'Show Answer';
     mainBtn.classList.remove('secondary');
-
-    if (autoSpeak) {
-      speak(String(currentNumber));
-    }
   }
 
   function onMainButton() {
@@ -367,6 +363,10 @@
       const spelling = getSpelling(currentNumber);
       document.getElementById('answerArea').textContent = spelling;
       document.getElementById('mainBtn').textContent = 'Next';
+
+      if (autoSpeak) {
+        speak(spelling);
+      }
     } else {
       showNewNumber();
     }
